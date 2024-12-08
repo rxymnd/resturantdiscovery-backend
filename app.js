@@ -11,7 +11,12 @@ if (!PORT) {
 }
 
 // Middleware
-app.use(cors()); // Enable CORS for all routes
+app.use(cors({
+    origin: '*', // Allow only the specified origin
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow these HTTP methods
+    allowedHeaders: ['Content-Type', 'Authorization'], // Allow these headers
+})); 
+app.options('*', cors()); // Enable preflight for all routes
 app.use(express.json()); // Parse JSON request bodies
 
 // Routes
