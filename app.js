@@ -1,18 +1,21 @@
 const express = require('express');
-const app = express();
-const PORT = process.env.PORT;
+const cors = require('cors'); // Import CORS
 
+const app = express();
+const PORT = process.env.PORT; // Use the dynamic PORT from the environment variable
+
+// Ensure the PORT variable is defined
 if (!PORT) {
     console.error("ERROR: PORT is not defined in the environment variables.");
-    process.exit(1); // Exit if PORT is not set
+    process.exit(1);
 }
 
 // Middleware
-app.use(express.json());
+app.use(cors()); // Enable CORS for all routes
+app.use(express.json()); // Parse JSON request bodies
 
 // Routes
 app.post('/api/search', (req, res) => {
-    console.log('Search endpoint hit:', req.body); // Log incoming requests
     const { location, cuisine } = req.body;
     res.json({ message: `Searching for ${cuisine} restaurants in ${location}` });
 });
@@ -28,5 +31,4 @@ app.get('/api/shortlist/:user_id', (req, res) => {
 // Start server
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
-    console.log(`Environment variable PORT: ${process.env.PORT}`);
 });
