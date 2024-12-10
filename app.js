@@ -44,20 +44,11 @@ app.post('/api/google-search', async (req, res) => {
                 )
                 : [];
 
-            // Ensure unique and varied photos
+            // Ensure the final photo array has exactly 9 items
             if (photos.length < 9) {
-                const placeholderPhotos = [
-                    'https://via.placeholder.com/400x300?text=Photo+1',
-                    'https://via.placeholder.com/400x300?text=Photo+2',
-                    'https://via.placeholder.com/400x300?text=Photo+3',
-                    'https://via.placeholder.com/400x300?text=Photo+4',
-                    'https://via.placeholder.com/400x300?text=Photo+5',
-                    'https://via.placeholder.com/400x300?text=Photo+6',
-                    'https://via.placeholder.com/400x300?text=Photo+7',
-                    'https://via.placeholder.com/400x300?text=Photo+8',
-                    'https://via.placeholder.com/400x300?text=Photo+9',
-                ];
-                // Fill up to 9 photos with placeholders
+                const placeholderPhotos = Array(9).fill(null).map((_, index) =>
+                    `https://via.placeholder.com/400x300?text=Placeholder+Photo+${index + 1}`
+                );
                 photos = [...photos, ...placeholderPhotos.slice(0, 9 - photos.length)];
             }
 
@@ -66,7 +57,7 @@ app.post('/api/google-search', async (req, res) => {
                 name: place.name,
                 cuisine: cuisine || 'Not specified', // Placeholder since Google doesn't return cuisine
                 address: place.formatted_address,
-                photos: photos, // Final array of 9 unique photos
+                photos: photos.slice(0, 9), // Limit to exactly 9 photos
                 ratings: {
                     ambience: (place.rating || 0) + 0.5, // Placeholder for ambience
                     food: (place.rating || 0) + 0.3, // Placeholder for food
@@ -89,3 +80,4 @@ app.post('/api/google-search', async (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
+
