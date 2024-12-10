@@ -1,70 +1,61 @@
 const express = require('express');
-const cors = require('cors');
+const cors = require('cors'); // Import CORS
 const axios = require('axios'); // Import Axios
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-
-// Your Yelp API Key
-const YELP_API_KEY = 'OuCQZXuhuZrxvImF07rxTilBY0sAIg5HfkDUAQPwRhTXyHNvYl9Z4Jt-dXdv9Vn1rAl8HVzMSCdiiHQL8XsvOHvjZj52RIQL6pllRAOvV5E1d5uUSsUhvWvzoJNXZ3Yx';
+const PORT = process.env.PORT || 3000; // Use dynamic PORT or fallback to 3000
+const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY || 'AIzaSyCoU1PW00tGALeMtQrDym6XjB4HTmWWww8'; // Use your provided API key
 
 // Middleware
 app.use(cors({
-    origin: '*', // Allow all origins for testing
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow these HTTP methods
-    allowedHeaders: ['Content-Type', 'Authorization'], // Allow these headers
+    origin: '*', // Allow all origins for testing (restrict for production)
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
 }));
-app.options('*', cors());
 app.use(express.json());
 
-// Routes
-app.post('/api/search', async (req, res) => {
+// Google Places API Route
+app.post('/api/google-search', async (req, res) => {
     const { location, cuisine } = req.body;
 
     try {
-        const response = await axios.get('https://api.yelp.com/v3/businesses/search', {
-            headers: {
-                Authorization: `Bearer ${YELP_API_KEY}`
-            },
+        // Query Google Places API
+        const response = await axios.get('https://maps.googleapis.com/maps/api/place/textsearch/json', {
             params: {
-                location: location || 'Vancouver, BC', // Default location if not provided
-                term: cuisine || 'restaurant', // Default term if not provided
-                limit: 10 // Limit the number of results to 10
-            }
+                query: `${cuisine} restaurants in ${location}`,
+                key: GOOGLE_API_KEY,
+            },
         });
 
-        // Transform the Yelp data to match your frontend's expected structure
-        const restaurants = response.data.businesses.map(business => ({
-            id: business.id,
-            name: business.name,
-            cuisine: business.categories.map(category => category.title).join(', '),
-            address: business.location.display_address.join(', '),
+        const places = response.data.results.map((place) => ({
+            id: place.place_id,
+            name: place.name,
+            cuisine: cuisine, // Placeholder since Google doesn't return cuisine
+            address: place.formatted_address,
+            photos: place.photos
+                ? place.photos.map(
+                    (photo) =>
+                        `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photo.photo_reference}&key=${GOOGLE_API_KEY}`
+                )
+                : [],
             ratings: {
-                ambience: Math.random() * 2 + 8, // Mocking specific ratings as Yelp does not provide them
-                food: Math.random() * 2 + 8,
-                noise: Math.random() * 2 + 8,
-                service: Math.random() * 2 + 8,
-                value: Math.random() * 2 + 8
+                ambience: (place.rating || 0) + 0.5, // Placeholder for ambience
+                food: (place.rating || 0) + 0.3, // Placeholder for food
+                noise: (place.rating || 0) - 0.2, // Placeholder for noise
+                service: (place.rating || 0) + 0.2, // Placeholder for service
+                value: (place.rating || 0), // Placeholder for value
             },
-            photos: business.photos || [business.image_url]
         }));
 
-        res.json(restaurants);
+        res.json(places);
     } catch (error) {
-        console.error('Error fetching data from Yelp:', error.message);
-        res.status(500).json({ error: 'Failed to fetch data from Yelp.' });
+        console.error('Failed to fetch data from Google Places API:', error);
+        res.status(500).json({ error: 'Failed to fetch data from Google Places API' });
     }
-});
-
-app.post('/api/shortlist', (req, res) => {
-    res.json({ message: 'Restaurant added to shortlist.' });
-});
-
-app.get('/api/shortlist/:user_id', (req, res) => {
-    res.json({ shortlist: [] });
 });
 
 // Start server
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
+
