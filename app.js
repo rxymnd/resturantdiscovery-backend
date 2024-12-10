@@ -1,14 +1,12 @@
 const express = require('express');
-const cors = require('cors'); // Import CORS
+const cors = require('cors');
+const axios = require('axios'); // Import Axios
 
 const app = express();
-const PORT = process.env.PORT; // Use the dynamic PORT from the environment variable
+const PORT = process.env.PORT || 3000;
 
-// Ensure the PORT variable is defined
-if (!PORT) {
-    console.error("ERROR: PORT is not defined in the environment variables.");
-    process.exit(1);
-}
+// Your Yelp API Key
+const YELP_API_KEY = 'OuCQZXuhuZrxvImF07rxTilBY0sAIg5HfkDUAQPwRhTXyHNvYl9Z4Jt-dXdv9Vn1rAl8HVzMSCdiiHQL8XsvOHvjZj52RIQL6pllRAOvV5E1d5uUSsUhvWvzoJNXZ3Yx';
 
 // Middleware
 app.use(cors({
@@ -16,61 +14,46 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allow these HTTP methods
     allowedHeaders: ['Content-Type', 'Authorization'], // Allow these headers
 }));
-app.options('*', cors()); // Enable preflight for all routes
-app.use(express.json()); // Parse JSON request bodies
-
-// Mock restaurant data
-const mockRestaurants = [
-    {
-        id: 'miku-vancouver',
-        name: 'Miku',
-        cuisine: 'Japanese, Sushi',
-        address: '200 Granville St, Vancouver, BC',
-        ratings: {
-            ambience: 8.7,
-            food: 9.3,
-            noise: 7.8,
-            service: 9.0,
-            value: 8.5
-        },
-        photos: [
-            'https://via.placeholder.com/300x200?text=Japanese+Restaurant+1',
-            'https://via.placeholder.com/300x200?text=Japanese+Restaurant+2',
-            'https://via.placeholder.com/300x200?text=Japanese+Restaurant+3'
-        ]
-    },
-    {
-        id: 'pasta-palace',
-        name: 'Pasta Palace',
-        cuisine: 'Italian',
-        address: '456 Oak St, Vancouver, BC',
-        ratings: {
-            ambience: 9.1,
-            food: 9.4,
-            noise: 8.2,
-            service: 8.8,
-            value: 8.9
-        },
-        photos: [
-            'https://via.placeholder.com/300x200?text=Italian+Restaurant+1',
-            'https://via.placeholder.com/300x200?text=Italian+Restaurant+2',
-            'https://via.placeholder.com/300x200?text=Italian+Restaurant+3'
-        ]
-    },
-    // Add other restaurants here...
-];
+app.options('*', cors());
+app.use(express.json());
 
 // Routes
-app.post('/api/search', (req, res) => {
+app.post('/api/search', async (req, res) => {
     const { location, cuisine } = req.body;
 
-    // Filter mock restaurants based on location and cuisine
-    const filteredRestaurants = mockRestaurants.filter((restaurant) =>
-        (!cuisine || restaurant.cuisine.toLowerCase().includes(cuisine.toLowerCase())) &&
-        (!location || restaurant.address.toLowerCase().includes(location.toLowerCase()))
-    );
+    try {
+        const response = await axios.get('https://api.yelp.com/v3/businesses/search', {
+            headers: {
+                Authorization: `Bearer ${YELP_API_KEY}`
+            },
+            params: {
+                location: location || 'Vancouver, BC', // Default location if not provided
+                term: cuisine || 'restaurant', // Default term if not provided
+                limit: 10 // Limit the number of results to 10
+            }
+        });
 
-    res.json(filteredRestaurants.length ? filteredRestaurants : { message: 'No restaurants found matching the criteria.' });
+        // Transform the Yelp data to match your frontend's expected structure
+        const restaurants = response.data.businesses.map(business => ({
+            id: business.id,
+            name: business.name,
+            cuisine: business.categories.map(category => category.title).join(', '),
+            address: business.location.display_address.join(', '),
+            ratings: {
+                ambience: Math.random() * 2 + 8, // Mocking specific ratings as Yelp does not provide them
+                food: Math.random() * 2 + 8,
+                noise: Math.random() * 2 + 8,
+                service: Math.random() * 2 + 8,
+                value: Math.random() * 2 + 8
+            },
+            photos: business.photos || [business.image_url]
+        }));
+
+        res.json(restaurants);
+    } catch (error) {
+        console.error('Error fetching data from Yelp:', error.message);
+        res.status(500).json({ error: 'Failed to fetch data from Yelp.' });
+    }
 });
 
 app.post('/api/shortlist', (req, res) => {
