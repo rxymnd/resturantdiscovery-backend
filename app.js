@@ -37,7 +37,6 @@ app.post('/api/google-search', async (req, res) => {
         }
 
         const places = response.data.results.map((place) => {
-            // Extract photos or use placeholders
             let photos = place.photos
                 ? place.photos.map(
                     (photo) =>
@@ -45,18 +44,29 @@ app.post('/api/google-search', async (req, res) => {
                 )
                 : [];
 
-            // Ensure there are exactly 9 photos
-            while (photos.length < 9) {
-                photos.push(...photos); // Duplicate existing photos
+            // Ensure unique and varied photos
+            if (photos.length < 9) {
+                const placeholderPhotos = [
+                    'https://via.placeholder.com/400x300?text=Photo+1',
+                    'https://via.placeholder.com/400x300?text=Photo+2',
+                    'https://via.placeholder.com/400x300?text=Photo+3',
+                    'https://via.placeholder.com/400x300?text=Photo+4',
+                    'https://via.placeholder.com/400x300?text=Photo+5',
+                    'https://via.placeholder.com/400x300?text=Photo+6',
+                    'https://via.placeholder.com/400x300?text=Photo+7',
+                    'https://via.placeholder.com/400x300?text=Photo+8',
+                    'https://via.placeholder.com/400x300?text=Photo+9',
+                ];
+                // Fill up to 9 photos with placeholders
+                photos = [...photos, ...placeholderPhotos.slice(0, 9 - photos.length)];
             }
-            photos = photos.slice(0, 9); // Trim to exactly 9 photos
 
             return {
                 id: place.place_id,
                 name: place.name,
                 cuisine: cuisine || 'Not specified', // Placeholder since Google doesn't return cuisine
                 address: place.formatted_address,
-                photos: photos, // Final array of 9 photos
+                photos: photos, // Final array of 9 unique photos
                 ratings: {
                     ambience: (place.rating || 0) + 0.5, // Placeholder for ambience
                     food: (place.rating || 0) + 0.3, // Placeholder for food
