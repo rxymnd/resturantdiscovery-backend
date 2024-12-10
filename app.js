@@ -18,6 +18,8 @@ app.use(express.json());
 app.post('/api/google-search', async (req, res) => {
     const { location, cuisine } = req.body;
 
+    console.log('Received request with:', { location, cuisine });
+
     try {
         // Query Google Places API
         const response = await axios.get('https://maps.googleapis.com/maps/api/place/textsearch/json', {
@@ -27,10 +29,17 @@ app.post('/api/google-search', async (req, res) => {
             },
         });
 
+        console.log('Google API raw response:', response.data);
+
+        if (!response.data.results || response.data.results.length === 0) {
+            console.log('No results found in Google API response');
+            return res.status(404).json({ error: 'No restaurants found' });
+        }
+
         const places = response.data.results.map((place) => ({
             id: place.place_id,
             name: place.name,
-            cuisine: cuisine, // Placeholder since Google doesn't return cuisine
+            cuisine: cuisine || 'Not specified', // Placeholder since Google doesn't return cuisine
             address: place.formatted_address,
             photos: place.photos
                 ? place.photos.map(
@@ -47,9 +56,10 @@ app.post('/api/google-search', async (req, res) => {
             },
         }));
 
+        console.log('Formatted places:', places);
         res.json(places);
     } catch (error) {
-        console.error('Failed to fetch data from Google Places API:', error);
+        console.error('Failed to fetch data from Google Places API:', error.message || error);
         res.status(500).json({ error: 'Failed to fetch data from Google Places API' });
     }
 });
