@@ -36,25 +36,36 @@ app.post('/api/google-search', async (req, res) => {
             return res.status(404).json({ error: 'No restaurants found' });
         }
 
-        const places = response.data.results.map((place) => ({
-            id: place.place_id,
-            name: place.name,
-            cuisine: cuisine || 'Not specified', // Placeholder since Google doesn't return cuisine
-            address: place.formatted_address,
-            photos: place.photos
+        const places = response.data.results.map((place) => {
+            // Extract photos or use placeholders
+            let photos = place.photos
                 ? place.photos.map(
                     (photo) =>
                         `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photo.photo_reference}&key=${GOOGLE_API_KEY}`
                 )
-                : [],
-            ratings: {
-                ambience: (place.rating || 0) + 0.5, // Placeholder for ambience
-                food: (place.rating || 0) + 0.3, // Placeholder for food
-                noise: (place.rating || 0) - 0.2, // Placeholder for noise
-                service: (place.rating || 0) + 0.2, // Placeholder for service
-                value: (place.rating || 0), // Placeholder for value
-            },
-        }));
+                : [];
+
+            // Ensure there are exactly 9 photos
+            while (photos.length < 9) {
+                photos.push(...photos); // Duplicate existing photos
+            }
+            photos = photos.slice(0, 9); // Trim to exactly 9 photos
+
+            return {
+                id: place.place_id,
+                name: place.name,
+                cuisine: cuisine || 'Not specified', // Placeholder since Google doesn't return cuisine
+                address: place.formatted_address,
+                photos: photos, // Final array of 9 photos
+                ratings: {
+                    ambience: (place.rating || 0) + 0.5, // Placeholder for ambience
+                    food: (place.rating || 0) + 0.3, // Placeholder for food
+                    noise: (place.rating || 0) - 0.2, // Placeholder for noise
+                    service: (place.rating || 0) + 0.2, // Placeholder for service
+                    value: (place.rating || 0), // Placeholder for value
+                },
+            };
+        });
 
         console.log('Formatted places:', places);
         res.json(places);
@@ -68,4 +79,3 @@ app.post('/api/google-search', async (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
-
